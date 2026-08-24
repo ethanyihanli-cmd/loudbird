@@ -13,6 +13,8 @@ public class GameController {
     private AnimationTimer gameLoop;
     private AudioThread audioThread;
 
+    private int frameCounter = 0;
+
     public GameController(GameModel model, GameView view) {
         this.model = model;
         this.view = view;
@@ -24,6 +26,7 @@ public class GameController {
             audioThread.setDaemon(true);
             audioThread.start();
             System.out.println("Microphone started - yell at your computer!");
+            System.out.println("Sensitivity is set to: " + model.getSensitivity());
         } catch (Exception e) {
             System.err.println("Failed to open min: " + e.getMessage());
             e.printStackTrace();
@@ -33,10 +36,25 @@ public class GameController {
         gameLoop = new AnimationTimer() {
             @Override
             public void handle(long now) {
+                model.updateBirdPosition();
+
                 view.render(model);
+
+                frameCounter++;
+                if (frameCounter % 30 == 0) {
+                    float loudness = model.getCurrentLoudness();
+                    System.out.println("Loudness: " + String.format("%.3f", loudness) +
+                            " | Bird Y: " + model.getBirdY());
+                }
             }
         };
         gameLoop.start();
+    }
+
+    public void stopAudio() {
+        if (audioThread != null) {
+            audioThread.stopRunning();
+        }
     }
 
     private class AudioThread extends Thread {
@@ -106,10 +124,6 @@ public class GameController {
             running = false;
         }
 
-        public void stopAudio() {
-            if (audioThread != null) {
-                audioThread.stopRunning();
-            }
-        }
+
     }
 }
