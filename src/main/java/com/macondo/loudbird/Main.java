@@ -10,12 +10,14 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 public class Main extends Application {
+    private GameController controller;
+
     @Override
     public void start(Stage primaryStage) {
         Canvas canvas = new Canvas(400, 600);
         GameModel model = new GameModel();
         GameView view = new GameView(canvas);
-        GameController controller = new GameController(model, view);
+        controller = new GameController(model, view);
 
         StackPane root = new StackPane();
         root.getChildren().add(canvas);
@@ -24,8 +26,13 @@ public class Main extends Application {
         primaryStage.setTitle("Loud Bird");
         primaryStage.setScene(scene);
         primaryStage.setResizable(false);
-        primaryStage.show();
 
+        primaryStage.setOnCloseRequest(e -> {
+            System.out.println("Closing mic...");
+            controller.stopAudio();
+        });
+
+        primaryStage.show();
         controller.start();
     }
 
