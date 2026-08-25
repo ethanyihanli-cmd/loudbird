@@ -17,11 +17,12 @@ public class Main extends Application {
         Canvas canvas = new Canvas(400, 600);
         GameModel model = new GameModel();
         GameView view = new GameView(canvas);
-        controller = new GameController(model, view);
 
         StackPane root = new StackPane();
         root.getChildren().add(canvas);
         Scene scene = new Scene(root, 400, 600);
+
+        controller = new GameController(model, view, scene);
 
         primaryStage.setTitle("Loud Bird");
         primaryStage.setScene(scene);

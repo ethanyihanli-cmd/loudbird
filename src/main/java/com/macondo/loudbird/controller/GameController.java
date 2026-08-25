@@ -3,6 +3,8 @@ package com.macondo.loudbird.controller;
 import com.macondo.loudbird.model.GameModel;
 import com.macondo.loudbird.view.GameView;
 import javafx.animation.AnimationTimer;
+import javafx.scene.Scene;
+import javafx.scene.input.KeyCode;
 
 import javax.sound.sampled.*;
 import java.nio.ByteBuffer;
@@ -12,12 +14,27 @@ public class GameController {
     private GameView view;
     private AnimationTimer gameLoop;
     private AudioThread audioThread;
+    private Scene scene;
 
     private int frameCounter = 0;
+    private boolean restartPressed = false;
 
-    public GameController(GameModel model, GameView view) {
+    public GameController(GameModel model, GameView view, Scene scene) {
         this.model = model;
         this.view = view;
+        this.scene = scene;
+        setupKeyboardInput();
+    }
+
+    public void setupKeyboardInput() {
+        scene.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.SPACE) {
+                if (model.isGameOver()) {
+                    System.out.println("Restarting game...");
+                    model.resetGame();
+                }
+            }
+        });
     }
 
     public void start() {
@@ -36,15 +53,27 @@ public class GameController {
         gameLoop = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                model.updateBirdPosition();
+                if (!model.isGameOver()) {
+                    model.updateBirdPosition();
+
+                    model.updatePipes();
+
+                    model.checkScoring();
+
+                    if (model.checkPipeCollision()) {
+                        model.setGameOver(true);
+                        System.out.println("GAME OVER! Final score: " + model.getScore());
+                    }
+                }
 
                 view.render(model);
 
                 frameCounter++;
-                if (frameCounter % 30 == 0) {
+                if (frameCounter % 30 == 0 && !model.isGameOver()) {
                     float loudness = model.getCurrentLoudness();
                     System.out.println("Loudness: " + String.format("%.3f", loudness) +
-                            " | Bird Y: " + model.getBirdY());
+                            " | Bird Y: " + model.getBirdY() +
+                            " | Pipes: " + model.getPipes().size());
                 }
             }
         };
