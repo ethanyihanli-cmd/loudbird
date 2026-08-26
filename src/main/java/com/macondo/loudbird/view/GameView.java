@@ -5,6 +5,7 @@ import com.macondo.loudbird.model.Pipe;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 
 public class GameView {
     private Canvas canvas;
@@ -59,9 +60,26 @@ public class GameView {
             );
         }
 
+        gc.setFill(Color.rgb(0, 0, 0, 0.3));
+        gc.fillRect(0, 0, canvas.getWidth(), 50);
+
         gc.setFill(Color.WHITE);
         gc.setFont(javafx.scene.text.Font.font(24));
-        gc.fillText("Score: " + model.getScore(), 10, 30);
+        gc.fillText("Score: " + model.getScore(), 15, 35);
+
+        gc.setFill(Color.rgb(255, 215, 0));
+        gc.setFont(Font.font(18));
+        gc.fillText("Best: " + model.getHighScore(), 140, 33);
+
+        if (model.isShowScorePopup()) {
+            int timer = model.getScorePopupTimer();
+            int yOffset = 50 - timer;
+            int alpha = (int)(255 * (timer / 30.0));
+
+            gc.setFill(Color.rgb(255, 255, 100, alpha / 255.0));
+            gc.setFont(Font.font(32));
+            gc.fillText("+1", canvas.getWidth() - 80, 80 - yOffset);
+        }
 
         if (model.isGameOver()) {
             gc.setFill(Color.rgb(0, 0, 0, 0.5));
@@ -69,14 +87,29 @@ public class GameView {
 
             gc.setFill(Color.WHITE);
             gc.setFont(javafx.scene.text.Font.font(48));
-            gc.fillText("GAME OVER", canvas.getWidth()/2 - 120, canvas.getHeight()/2 - 30);
+            gc.fillText("GAME OVER", canvas.getWidth()/2 - 120, canvas.getHeight()/2 - 50);
 
-            gc.setFont(javafx.scene.text.Font.font(20));
-            gc.fillText("Final Score: " + model.getScore(), canvas.getWidth()/2 - 60, canvas.getHeight()/2 + 30);
+            gc.setFont(Font.font(24));
+            gc.fillText("Score: " + model.getScore(), canvas.getWidth()/2 - 50, canvas.getHeight()/2 + 10);
 
-            gc.setFont(javafx.scene.text.Font.font(16));
-            gc.fillText("Press SPACE to restart", canvas.getWidth()/2 - 80, canvas.getHeight()/2 + 70);
+            if (model.getScore() >= model.getHighScore() && model.getScore() > 0) {
+                gc.setFill(Color.rgb(255, 215, 0));
+                gc.setFont(Font.font(20));
+                gc.fillText("* NEW HIGH SCORE! *", canvas.getWidth()/2 - 90, canvas.getHeight()/2 + 50);
+            } else {
+                gc.setFill(Color.rgb(200, 200, 200));
+                gc.setFont(Font.font(18));
+                gc.fillText("High Score: " + model.getHighScore(), canvas.getWidth()/2 - 70, canvas.getHeight()/2 + 50);
+            }
+
+            gc.setFill(Color.WHITE);
+            gc.setFont(Font.font(16));
+            gc.fillText("Press SPACE to restart", canvas.getWidth()/2 - 80, canvas.getHeight()/2 + 90);
         }
+
+        gc.setFill(Color.BLACK);
+        gc.setFont(Font.font(12));
+        gc.fillText("Mic: " + String.format("%.2f", model.getCurrentLoudness()), 5, canvas.getHeight() - 10);
     }
 
     private void drawPipe(GraphicsContext gc, Pipe pipe) {

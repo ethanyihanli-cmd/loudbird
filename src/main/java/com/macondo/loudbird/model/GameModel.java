@@ -1,5 +1,6 @@
 package com.macondo.loudbird.model;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -28,16 +29,21 @@ public class GameModel {
     private int pipeGapMax = 500;
 
     private int score = 0;
+    private int highScore = 0;
     private boolean gameOver = false;
 
     private boolean hitCooldown = false;
     private int hitCooldownTimer = 0;
+
+    private int scorePopupTimer = 0;
+    private boolean showScorePopup = false;
 
     public GameModel() {
         birdX = 80;
         birdY = screenHeight / 2;
         pipes = new ArrayList<>();
         random = new Random();
+        loadHighScore();
     }
 
     public int getBirdX() { return birdX; }
@@ -80,6 +86,13 @@ public class GameModel {
                 hitCooldown = false;
             }
         }
+
+        if (scorePopupTimer > 0) {
+            scorePopupTimer--;
+            if (scorePopupTimer <= 0) {
+                showScorePopup = false;
+            }
+        }
     }
 
     private void spawnPipe() {
@@ -115,20 +128,62 @@ public class GameModel {
     }
 
     public void checkScoring() {
-        int birdSize = 30;
         for (Pipe pipe : pipes) {
-            if (!pipe.isScored() && pipe.setX() + pipe.getWidth() < birdX - birdSize/2) {
+            if (!pipe.isScored() && pipe.getX() + pipe.getWidth() < birdX - birdSize/2) {
                 pipe.setScored(true);
                 score++;
+
+                showScorePopup = true;
+                scorePopupTimer = 30;
+
                 System.out.println("Score: " + score);
+
+                if (score > highScore) {
+                    highScore = score;
+                    saveHighScore();
+                    System.out.println("NEW HIGH SCORE: " + highScore + " !!!");
+                }
             }
         }
     }
 
+    private void loadHighScore() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("highscore.text"))) {
+            String line = reader.readLine();
+            if (line != null) {
+                highScore = Integer.parseInt(line.trim());
+                System.out.println("Loaded high score: " + highScore);
+            }
+        } catch (IOException e) {
+            System.out.println("No high score file found, starting fresh");
+            highScore = 0;
+        }
+    }
+
+    private void saveHighScore() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("highscore.txt"))) {
+            writer.write(String.valueOf(highScore));
+            System.out.println("Saved high score: " + highScore);
+        } catch (IOException e) {
+            System.err.println("Failed to save high score (HA): " + e.getMessage());
+        }
+        
+    }
+
     public List<Pipe> getPipes() { return pipes; }
     public int getScore() { return score; }
+    public int getHighScore() { return highScore; }
     public boolean isGameOver() { return gameOver; }
-    public void setGameOver(boolean gameOver) { this.gameOver = gameOver; }
+    public void setGameOver(boolean gameOver) {
+        this.gameOver = gameOver;
+        if (gameOver && score > highScore) {
+            highScore = score;
+            saveHighScore();
+        }
+    }
+
+    public boolean isShowScorePopup() { return showScorePopup; }
+    public int getScorePopupTimer() { return scorePopupTimer; }
 
     public void resetGame() {
         birdY = screenHeight / 2;
@@ -138,6 +193,8 @@ public class GameModel {
         pipeSpawnTimer = 0;
         hitCooldown = false;
         hitCooldownTimer = 0;
+        showScorePopup = false;
+        scorePopupTimer = 0;
         System.out.println("=== GAME RESET ===");
     }
 
