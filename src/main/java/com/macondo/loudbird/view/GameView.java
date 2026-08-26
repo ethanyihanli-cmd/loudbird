@@ -104,7 +104,15 @@ public class GameView {
 
             gc.setFill(Color.WHITE);
             gc.setFont(Font.font(16));
-            gc.fillText("Press SPACE to restart", canvas.getWidth()/2 - 80, canvas.getHeight()/2 + 90);
+
+            if (model.canRestart()) {
+                gc.setFill(Color.rgb(100, 255, 100));
+                gc.fillText("Press SPACE or YELL to restart!", canvas.getWidth()/2 - 110, canvas.getHeight()/2 + 90);
+            } else {
+                gc.setFill(Color.rgb(200, 200, 200));
+                gc.fillText("Restarting in " + (model.getRestartCooldown() / 60 + 1) + "s...",
+                        canvas.getWidth()/2 - 80, canvas.getHeight()/2 + 90);
+            }
         }
 
         gc.setFill(Color.BLACK);

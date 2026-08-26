@@ -38,6 +38,10 @@ public class GameModel {
     private int scorePopupTimer = 0;
     private boolean showScorePopup = false;
 
+    private boolean restartPending = false;
+    private int restartCooldown = 0;
+    private boolean canRestart = false;
+
     public GameModel() {
         birdX = 80;
         birdY = screenHeight / 2;
@@ -61,7 +65,16 @@ public class GameModel {
     }
 
     public void updatePipes() {
-        if (gameOver) return;
+        if (gameOver) {
+            if (restartCooldown > 0) {
+                restartCooldown--;
+                if (restartCooldown == 0) {
+                    canRestart = true;
+                    System.out.println("Ready to restart!");
+                }
+            }
+            return;
+        }
 
         pipeSpawnTimer++;
         if (pipeSpawnTimer >= pipeSpawnInterval) {
@@ -95,6 +108,21 @@ public class GameModel {
         }
     }
 
+    public void checkVoiceRestart() {
+        if (gameOver && canRestart && currentLoudness > 0.7f) {
+            System.out.println("Voice restart triggered! Loudness: " + currentLoudness);
+            resetGame();
+        }
+    }
+
+    public void keyboardRestart() {
+        if (gameOver && canRestart) {
+            System.out.println("Keyboard restart triggered!");
+            resetGame();
+        }
+
+    }
+
     private void spawnPipe() {
         int gapY = random.nextInt(pipeGapMax - pipeGapMin) + pipeGapMin;
         pipes.add(new Pipe(screenWidth, gapY));
@@ -120,6 +148,7 @@ public class GameModel {
                 if (birdTop < topPipeBottom || birdBottom > bottomPipeTop) {
                     hitCooldown = true;
                     hitCooldownTimer = 10;
+                    setGameOver(true);
                     return true;
                 }
             }
@@ -176,14 +205,20 @@ public class GameModel {
     public boolean isGameOver() { return gameOver; }
     public void setGameOver(boolean gameOver) {
         this.gameOver = gameOver;
-        if (gameOver && score > highScore) {
-            highScore = score;
-            saveHighScore();
+        if (gameOver) {
+            if (score > highScore) {
+                highScore = score;
+                saveHighScore();
+            }
+            restartCooldown = 90;
+            canRestart = false;
+            System.out.println("Game over! Restart available in 1.5 seconds");
         }
     }
 
     public boolean isShowScorePopup() { return showScorePopup; }
     public int getScorePopupTimer() { return scorePopupTimer; }
+    public boolean canRestart() { return canRestart; }
 
     public void resetGame() {
         birdY = screenHeight / 2;
@@ -195,6 +230,8 @@ public class GameModel {
         hitCooldownTimer = 0;
         showScorePopup = false;
         scorePopupTimer = 0;
+        restartCooldown = 0;
+        canRestart = false;
         System.out.println("=== GAME RESET ===");
     }
 
@@ -212,6 +249,7 @@ public class GameModel {
     public int getScreenHeight() { return screenHeight; }
     public int getTopPadding() { return topPadding; }
     public int getBottomPadding() { return bottomPadding; }
+    public int getRestartCooldown() { return restartCooldown; }
 
     public int getPipeSpeed() { return pipeSpeed; }
     public void setPipeSpeed(int speed) { this.pipeSpeed = speed; }

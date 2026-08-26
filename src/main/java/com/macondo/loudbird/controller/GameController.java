@@ -44,6 +44,7 @@ public class GameController {
             audioThread.start();
             System.out.println("Microphone started - yell at your computer!");
             System.out.println("Sensitivity is set to: " + model.getSensitivity());
+            System.out.println("Yell loudly to restart after game over!");
         } catch (Exception e) {
             System.err.println("Failed to open min: " + e.getMessage());
             e.printStackTrace();
@@ -53,17 +54,15 @@ public class GameController {
         gameLoop = new AnimationTimer() {
             @Override
             public void handle(long now) {
+                model.checkVoiceRestart();
+
                 if (!model.isGameOver()) {
-                    model.updateBirdPosition();
-
+                     model.updateBirdPosition();
+                     model.updatePipes();
+                     model.checkScoring();
+                     model.checkPipeCollision();
+                    } else {
                     model.updatePipes();
-
-                    model.checkScoring();
-
-                    if (model.checkPipeCollision()) {
-                        model.setGameOver(true);
-                        System.out.println("GAME OVER! Final score: " + model.getScore());
-                    }
                 }
 
                 view.render(model);
@@ -72,8 +71,8 @@ public class GameController {
                 if (frameCounter % 30 == 0 && !model.isGameOver()) {
                     float loudness = model.getCurrentLoudness();
                     System.out.println("Loudness: " + String.format("%.3f", loudness) +
-                            " | Bird Y: " + model.getBirdY() +
-                            " | Pipes: " + model.getPipes().size());
+                                      " | Bird Y: " + model.getBirdY() +
+                                      " | Pipes: " + model.getPipes().size());
                 }
             }
         };
