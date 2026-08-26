@@ -8,6 +8,7 @@ import java.util.Random;
 public class GameModel {
     private int birdX;
     private int birdY;
+    private int birdSize = 30;
     private int screenWidth = 400;
     private int screenHeight = 600;
 
@@ -26,6 +27,12 @@ public class GameModel {
     private int pipeGapMin = 100;
     private int pipeGapMax = 500;
 
+    private int score = 0;
+    private boolean gameOver = false;
+
+    private boolean hitCooldown = false;
+    private int hitCooldownTimer = 0;
+
     public GameModel() {
         birdX = 80;
         birdY = screenHeight / 2;
@@ -35,6 +42,7 @@ public class GameModel {
 
     public int getBirdX() { return birdX; }
     public int getBirdY() { return birdY; }
+    public int getBirdSize() { return birdSize; }
 
     public void updateBirdPosition() {
         float volumeClamped = Math.min(currentLoudness * sensitivity, 1.0f);
@@ -65,6 +73,13 @@ public class GameModel {
             }
 
         }
+
+        if (hitCooldown) {
+            hitCooldownTimer--;
+            if (hitCooldownTimer <= 0) {
+                hitCooldown = false;
+            }
+        }
     }
 
     private void spawnPipe() {
@@ -73,9 +88,13 @@ public class GameModel {
     }
 
     public boolean checkPipeCollision() {
-        int birdSize = 30;
-        int birdLeft = birdX - birdSize/2;
-        int birdRight = birdX + birdSize/2;
+        if (gameOver || hitCooldown) return false;
+
+        int halfSize = birdSize / 2;
+        int birdLeft = birdX - halfSize;
+        int birdRight = birdX + halfSize;
+        int birdTop = birdY - halfSize;
+        int birdBottom = birdY + halfSize;
 
         for (Pipe pipe : pipes) {
             int pipeLeft = pipe.getX();
@@ -85,7 +104,9 @@ public class GameModel {
                 int topPipeBottom = pipe.getTopPipeBottom();
                 int bottomPipeTop = pipe.getBottomPipeTop();
 
-                if (birdY - birdSize/2 < topPipeBottom || birdY + birdSize/2 > bottomPipeTop) {
+                if (birdTop < topPipeBottom || birdBottom > bottomPipeTop) {
+                    hitCooldown = true;
+                    hitCooldownTimer = 10;
                     return true;
                 }
             }
@@ -115,7 +136,9 @@ public class GameModel {
         score = 0;
         gameOver = false;
         pipeSpawnTimer = 0;
-        System.out.println("Game reset!");
+        hitCooldown = false;
+        hitCooldownTimer = 0;
+        System.out.println("=== GAME RESET ===");
     }
 
     public float getCurrentLoudness() { return currentLoudness; }
@@ -135,4 +158,6 @@ public class GameModel {
 
     public int getPipeSpeed() { return pipeSpeed; }
     public void setPipeSpeed(int speed) { this.pipeSpeed = speed; }
+    public int getPipeSpawnInterval() { return pipeSpawnInterval; }
+    public void setPipeSpawnInterval(int interval) { this.pipeSpawnInterval = interval; }
 }

@@ -32,6 +32,31 @@ public class Pipe {
         return gapY + gapSize / 2;
     }
 
+    public boolean collidesWith(int rectX, int rectY, int rectWidth, int rectHeight) {
+        int pipeLeft = x;
+        int pipeRight = x + width;
+        int rectLeft = rectX - rectWidth/2;
+        int rectRight = rectX + rectWidth/2;
+        int rectTop = rectY - rectHeight/2;
+        int rectBottom = rectY + rectHeight/2;
+
+        if (rectRight <= pipeLeft || rectLeft >= pipeRight) {
+            return false;
+        }
+
+        int topPipeBottom = getTopPipeBottom();
+        if (rectTop < topPipeBottom) {
+            return true;
+        }
+
+        int bottomPipeTop = getBottomPipeTop();
+        if (rectBottom > bottomPipeTop) {
+            return true;
+        }
+
+        return false;
+    }
+
     public boolean isBirdPassing(int birdX, int birdY, int birdSize) {
         int birdLeft = birdX - birdSize/2;
         int birdRight = birdX + birdSize/2;
