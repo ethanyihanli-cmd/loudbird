@@ -250,6 +250,7 @@ public class GameModel {
     public int getTopPadding() { return topPadding; }
     public int getBottomPadding() { return bottomPadding; }
     public int getRestartCooldown() { return restartCooldown; }
+    public float getSensitivity() { return sensitivity; }
 
     public int getPipeSpeed() { return pipeSpeed; }
     public void setPipeSpeed(int speed) { this.pipeSpeed = speed; }

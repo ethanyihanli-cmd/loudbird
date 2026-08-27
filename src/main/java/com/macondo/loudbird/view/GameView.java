@@ -60,6 +60,8 @@ public class GameView {
             );
         }
 
+        drawVolumeMeter(gc, model);
+
         gc.setFill(Color.rgb(0, 0, 0, 0.3));
         gc.fillRect(0, 0, canvas.getWidth(), 50);
 
@@ -82,24 +84,24 @@ public class GameView {
         }
 
         if (model.isGameOver()) {
-            gc.setFill(Color.rgb(0, 0, 0, 0.5));
+            gc.setFill(Color.rgb(0, 0, 0, 0.6));
             gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
             gc.setFill(Color.WHITE);
             gc.setFont(javafx.scene.text.Font.font(48));
-            gc.fillText("GAME OVER", canvas.getWidth()/2 - 120, canvas.getHeight()/2 - 50);
+            gc.fillText("GAME OVER", canvas.getWidth()/2 - 120, canvas.getHeight()/2 - 60);
 
             gc.setFont(Font.font(24));
-            gc.fillText("Score: " + model.getScore(), canvas.getWidth()/2 - 50, canvas.getHeight()/2 + 10);
+            gc.fillText("Score: " + model.getScore(), canvas.getWidth()/2 - 50, canvas.getHeight()/2);
 
             if (model.getScore() >= model.getHighScore() && model.getScore() > 0) {
                 gc.setFill(Color.rgb(255, 215, 0));
-                gc.setFont(Font.font(20));
-                gc.fillText("* NEW HIGH SCORE! *", canvas.getWidth()/2 - 90, canvas.getHeight()/2 + 50);
+                gc.setFont(Font.font(22));
+                gc.fillText("* NEW HIGH SCORE! *", canvas.getWidth()/2 - 100, canvas.getHeight()/2 + 45);
             } else {
                 gc.setFill(Color.rgb(200, 200, 200));
                 gc.setFont(Font.font(18));
-                gc.fillText("High Score: " + model.getHighScore(), canvas.getWidth()/2 - 70, canvas.getHeight()/2 + 50);
+                gc.fillText("High Score: " + model.getHighScore(), canvas.getWidth()/2 - 70, canvas.getHeight()/2 + 45);
             }
 
             gc.setFill(Color.WHITE);
@@ -115,9 +117,62 @@ public class GameView {
             }
         }
 
-        gc.setFill(Color.BLACK);
+        gc.setFill(Color.rgb(0, 0, 0, 0.3));
+        gc.setFont(Font.font(11));
+        gc.fillText("Sensitivity: " + String.format("%.2f", model.getCurrentLoudness()), 5, canvas.getHeight() - 5);
+    }
+
+    private void drawVolumeMeter(GraphicsContext gc, GameModel model) {
+        float loudness = model.getCurrentLoudness();
+
+        int meterX = (int)canvas.getWidth() - 30;
+        int meterY = 60;
+        int meterWidth = 20;
+        int meterHeight = 200;
+        int meterPadding = 5;
+
+        gc.setFill(Color.rgb(0, 0, 0, 0.4));
+        gc.fillRect(meterX - meterPadding, meterY - meterPadding,
+                meterWidth + meterPadding * 2, meterHeight + meterPadding * 2);
+
+        gc.setStroke(Color.rgb(255, 255, 255, 0.3));
+        gc.setLineWidth(1);
+        gc.strokeRect(meterX - meterPadding, meterY - meterPadding,
+                meterWidth + meterPadding * 2, meterHeight + meterPadding * 2);
+
+        int fillHeight = (int)(loudness * meterHeight);
+        int fillY = meterY + meterHeight - fillHeight;
+
+        Color fillColor;
+        if (loudness < 0.3f) {
+            fillColor = Color.rgb(0, 200, 0);
+        } else if (loudness < 0.6f) {
+            fillColor = Color.rgb(255, 200, 0);
+        } else {
+            fillColor = Color.rgb(255, 50, 50);
+        }
+
+        gc.setFill(fillColor);
+        gc.fillRect(meterX, fillY, meterWidth, fillHeight);
+
+        gc.setFill(Color.rgb(255, 255, 255, 0.1));
+        gc.fillRect(meterX, meterY, meterWidth, meterHeight);
+
+        gc.setFill(Color.WHITE);
         gc.setFont(Font.font(12));
-        gc.fillText("Mic: " + String.format("%.2f", model.getCurrentLoudness()), 5, canvas.getHeight() - 10);
+        gc.fillText("VOLUME", meterX - 10, meterY - 10);
+
+        gc.setFont(Font.font(14));
+        gc.setFill(Color.rgb(200, 200, 200));
+        String percent = String.format("%.of%%", loudness * 100);
+        gc.fillText(percent, meterX - 5, meterY + meterHeight + 20);
+
+        gc.setStroke(Color.rgb(255, 255, 255, 0.2));
+        gc.setLineWidth(1);
+        for (int i = 0; i <= 4; i++) {
+            int yPos = meterY + (i * meterHeight / 4);
+            gc.strokeLine(meterX - 3, yPos, meterX, yPos);
+        }
     }
 
     private void drawPipe(GraphicsContext gc, Pipe pipe) {
