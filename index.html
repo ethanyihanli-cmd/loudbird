@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loud Bird</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: #182533;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+
+        .game-wrap {
+            width: min(94vw, 430px);
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #dcecff;
+        }
+
+        button {
+            border: 0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            background: #f7c948;
+            color: #17202a;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #ffd85c;
+        }
+
+        canvas {
+            width: 100%;
+            aspect-ratio: 2 / 3;
+            display: block;
+            background: #86ceeb;
+            border: 3px solid #0d1720;
+        }
+
+        .help {
+            margin-top: 8px;
+            font-size: 13px;
+            line-height: 1.35;
+            color: #b9c8d8;
+        }
+    </style>
+</head>
+<body>
+<main class="game-wrap">
+    <div class="top-bar">
+        <strong>Loud Bird</strong>
+        <button id="micButton">Start Mic</button>
+    </div>
+    <canvas id="game" width="400" height="600"></canvas>
+    <div class="help">Use your voice to move. Louder goes up, quiet goes down. Keyboard fallback: W/S or arrow keys.</div>
+</main>
+
+<script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const micButton = document.getElementById("micButton");
+
+    const bird = {
+        x: 80,
+        y: 300,
+        size: 30
+    };
+
+    let pipes = [];
+    let pipeTimer = 0;
+    let score = 0;
+    let best = Number(localStorage.getItem("loudBirdBest") || 0);
+    let gameOver = false;
+    let restartDelay = 0;
+    let loudness = 0.35;
+    let smoothLoudness = 0.35;
+    let keyboardPower = 0.35;
+    let micReady = false;
+    let frame = 0;
+
+    const keys = new Set();
+
+    window.addEventListener("keydown", (event) => {
+        keys.add(event.key.toLowerCase());
+
+        if (event.code === "Space" && gameOver && restartDelay <= 0) {
+            resetGame();
+        }
+    });
+
+    window.addEventListener("keyup", (event) => {
+        keys.delete(event.key.toLowerCase());
+    });
+
+    micButton.addEventListener("click", startMic);
+
+    async function startMic() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const audioContext = new AudioContext();
+            const source = audioContext.createMediaStreamSource(stream);
+            const analyser = audioContext.createAnalyser();
+            const data = new Uint8Array(analyser.fftSize);
+
+            source.connect(analyser);
+            micReady = true;
+            micButton.textContent = "Mic On";
+
+            function readMic() {
+                analyser.getByteTimeDomainData(data);
+
+                let sum = 0;
+                for (let i = 0; i < data.length; i++) {
+                    const sample = (data[i] - 128) / 128;
+                    sum += sample * sample;
+                }
+
+                loudness = Math.min(Math.sqrt(sum / data.length) * 4, 1);
+                requestAnimationFrame(readMic);
+            }
+
+            readMic();
+        } catch (error) {
+            micButton.textContent = "No Mic";
+            micReady = false;
+        }
+    }
+
+    function update() {
+        frame++;
+
+        if (!micReady) {
+            if (keys.has("w") || keys.has("arrowup")) keyboardPower = Math.min(keyboardPower + 0.035, 1);
+            else if (keys.has("s") || keys.has("arrowdown")) keyboardPower = Math.max(keyboardPower - 0.035, 0);
+            else keyboardPower += (0.35 - keyboardPower) * 0.04;
+
+            loudness = keyboardPower;
+        }
+
+        smoothLoudness = smoothLoudness * 0.72 + loudness * 0.28;
+
+        if (!gameOver) {
+            bird.y = 560 - smoothLoudness * 520;
+            bird.y = Math.max(30, Math.min(570, bird.y));
+
+            pipeTimer++;
+            if (pipeTimer >= 115) {
+                pipeTimer = 0;
+                pipes.push({
+                    x: canvas.width,
+                    gapY: 130 + Math.random() * 320,
+                    gap: 160,
+                    width: 60,
+                    scored: false
+                });
+            }
+
+            for (const pipe of pipes) {
+                pipe.x -= 3;
+
+                if (!pipe.scored && pipe.x + pipe.width < bird.x - bird.size / 2) {
+                    pipe.scored = true;
+                    score++;
+                    if (score > best) {
+                        best = score;
+                        localStorage.setItem("loudBirdBest", best);
+                    }
+                }
+            }
+
+            pipes = pipes.filter(pipe => pipe.x + pipe.width > -10);
+            checkCrash();
+        } else if (restartDelay > 0) {
+            restartDelay--;
+        } else if (loudness > 0.75) {
+            resetGame();
+        }
+
+        draw();
+        requestAnimationFrame(update);
+    }
+
+    function checkCrash() {
+        const half = bird.size / 2;
+        const left = bird.x - half;
+        const right = bird.x + half;
+        const top = bird.y - half;
+        const bottom = bird.y + half;
+
+        if (top < 0 || bottom > canvas.height - 50) {
+            endGame();
+            return;
+        }
+
+        for (const pipe of pipes) {
+            const pipeLeft = pipe.x;
+            const pipeRight = pipe.x + pipe.width;
+            const topBottom = pipe.gapY - pipe.gap / 2;
+            const bottomTop = pipe.gapY + pipe.gap / 2;
+
+            if (right > pipeLeft && left < pipeRight && (top < topBottom || bottom > bottomTop)) {
+                endGame();
+                return;
+            }
+        }
+    }
+
+    function endGame() {
+        gameOver = true;
+        restartDelay = 80;
+    }
+
+    function resetGame() {
+        pipes = [];
+        pipeTimer = 0;
+        score = 0;
+        gameOver = false;
+        restartDelay = 0;
+        bird.y = 300;
+        smoothLoudness = 0.35;
+    }
+
+    function draw() {
+        const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        sky.addColorStop(0, "#8bd3f7");
+        sky.addColorStop(0.7, "#68b8df");
+        sky.addColorStop(1, "#cde7ee");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        drawClouds();
+        drawPipes();
+        drawGround();
+        drawBird();
+        drawUi();
+
+        if (gameOver) drawGameOver();
+    }
+
+    function drawClouds() {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+        for (let i = 0; i < 5; i++) {
+            const x = (i * 95 + frame * 0.25) % 500 - 70;
+            const y = 45 + i * 31;
+            ctx.beginPath();
+            ctx.ellipse(x, y, 34, 14, 0, 0, Math.PI * 2);
+            ctx.ellipse(x + 20, y - 7, 22, 13, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    function drawPipes() {
+        for (const pipe of pipes) {
+            const topHeight = pipe.gapY - pipe.gap / 2;
+            const bottomY = pipe.gapY + pipe.gap / 2;
+
+            ctx.fillStyle = "#14b84d";
+            ctx.fillRect(pipe.x, 0, pipe.width, topHeight);
+            ctx.fillRect(pipe.x, bottomY, pipe.width, canvas.height - bottomY - 50);
+
+            ctx.fillStyle = "#0e963b";
+            ctx.fillRect(pipe.x - 5, topHeight - 20, pipe.width + 10, 20);
+            ctx.fillRect(pipe.x - 5, bottomY, pipe.width + 10, 20);
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+            ctx.fillRect(pipe.x + 7, 0, 8, topHeight);
+            ctx.fillRect(pipe.x + 7, bottomY, 8, canvas.height - bottomY - 50);
+        }
+    }
+
+    function drawGround() {
+        ctx.fillStyle = "#3ca837";
+        ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+        ctx.fillRect(0, canvas.height - 50, canvas.width, 4);
+    }
+
+    function drawBird() {
+        ctx.save();
+        ctx.translate(bird.x, bird.y);
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
+        ctx.beginPath();
+        ctx.arc(4, 4, bird.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = gameOver && frame % 12 < 6 ? "#f04b4b" : "#ffc928";
+        ctx.beginPath();
+        ctx.arc(0, 0, bird.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(8, -7, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#101010";
+        ctx.beginPath();
+        ctx.arc(10, -6, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#f1871f";
+        ctx.beginPath();
+        ctx.moveTo(14, -4);
+        ctx.lineTo(27, 2);
+        ctx.lineTo(14, 8);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    function drawUi() {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+        ctx.fillRect(0, 0, canvas.width, 52);
+
+        ctx.fillStyle = "white";
+        ctx.font = "bold 25px Arial";
+        ctx.fillText("Score: " + score, 15, 34);
+
+        ctx.fillStyle = "#ffd84a";
+        ctx.font = "bold 16px Arial";
+        ctx.fillText("Best: " + best, 165, 32);
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillRect(365, 70, 18, 190);
+        ctx.fillStyle = loudness < 0.35 ? "#30d158" : loudness < 0.65 ? "#ffd60a" : "#ff453a";
+        const meter = loudness * 190;
+        ctx.fillRect(368, 257 - meter, 12, meter);
+    }
+
+    function drawGameOver() {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.62)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "rgba(25, 33, 45, 0.92)";
+        ctx.fillRect(45, 205, 310, 175);
+
+        ctx.fillStyle = "white";
+        ctx.font = "bold 39px Arial";
+        ctx.fillText("GAME OVER", 67, 260);
+
+        ctx.font = "20px Arial";
+        ctx.fillText("Score: " + score, 155, 303);
+
+        ctx.fillStyle = restartDelay > 0 ? "#d0d6dd" : "#87f58a";
+        ctx.font = "16px Arial";
+        const text = restartDelay > 0 ? "Restarting soon..." : "Press SPACE or yell to restart";
+        ctx.fillText(text, restartDelay > 0 ? 137 : 103, 340);
+    }
+
+    update();
+</script>
+</body>
+</html>
