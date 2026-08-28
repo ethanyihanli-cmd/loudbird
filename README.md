@@ -56,3 +56,5 @@ In the Java version I split the code into model, view, and controller. The model
 The HTML version uses the same idea but keeps it all in one file so it is easier to open and share.
 
 
+<img width="527" height="907" alt="屏幕截图 2026-08-28 121403" src="https://github.com/user-attachments/assets/3dfc7137-f4d6-4cf6-bd63-ec7954da4590" />
+
