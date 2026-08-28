@@ -29,11 +29,14 @@ public class GameController {
     public void setupKeyboardInput() {
         scene.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.SPACE) {
-                if (model.isGameOver()) {
-                    System.out.println("Restarting game...");
-                    model.resetGame();
-                }
+                model.keyboardRestart();
             }
+            if (e.getCode() == KeyCode.S) {
+                float newSens = model.getSensitivity() + 0.1f;
+                if (newSens > 1.5f) newSens = 0.3f;
+                model.setSensitivity(newSens);
+                System.out.println("Sensitivity: " + String.format("%.2f", newSens));
+                }
         });
     }
 
@@ -42,14 +45,26 @@ public class GameController {
             audioThread = new AudioThread();
             audioThread.setDaemon(true);
             audioThread.start();
-            System.out.println("Microphone started - yell at your computer!");
-            System.out.println("Sensitivity is set to: " + model.getSensitivity());
-            System.out.println("Yell loudly to restart after game over!");
+
+            try { Thread.sleep(500); } catch (InterruptedException e) {}
+
+            if (model.getCurrentLoudness() > 0.01f) {
+                micWorking = true;
+                System.out.println("√ Microphone detected and working!");
+            } else {
+                System.out.println("⚠ Microphone detected but no sound. Try adjusting volume");
+                micWorking = true;
+            }
         } catch (Exception e) {
-            System.err.println("Failed to open min: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("❌ Failed to open microphone: " + e.getMessage());
+            System.err.println("Using fallback mode - bird will hover in middle");
+            micWorking = false;
             model.setCurrentLoudness(0.5f);
         }
+
+        System.out.println("Sensitivity: " + model.getSensitivity());
+        System.out.println("Press SPACE or YELL to restart after game over);
+        System.out.println("Press 'S' to change sensitivity");
 
         gameLoop = new AnimationTimer() {
             @Override
@@ -70,9 +85,11 @@ public class GameController {
                 frameCounter++;
                 if (frameCounter % 30 == 0 && !model.isGameOver()) {
                     float loudness = model.getCurrentLoudness();
-                    System.out.println("Loudness: " + String.format("%.3f", loudness) +
-                                      " | Bird Y: " + model.getBirdY() +
-                                      " | Pipes: " + model.getPipes().size());
+                    if (micWorking) {
+                        System.out.println("Mic: " + String.format("%.2f", loudness) +
+                                " | Bird Y: " + model.getBirdY() +
+                                " | Pipes: " + model.getPipes().size());
+                    }
                 }
             }
         };
@@ -82,11 +99,15 @@ public class GameController {
     public void stopAudio() {
         if (audioThread != null) {
             audioThread.stopRunning();
+            try {
+                audioThread.join(1000);
+            } catch (InterruptedException e) {}
         }
     }
 
     private class AudioThread extends Thread {
         private volatile boolean running = true;
+        private volatile boolean hasData = false;
 
         @Override
         public void run() {
@@ -106,6 +127,8 @@ public class GameController {
                 line.open(format, 4096);
                 line.start();
 
+                System.out.println("Audio line opened successfully");
+
                 byte[] buffer = new byte[1024];
                 int bytesRead;
                 float rms;
@@ -114,25 +137,40 @@ public class GameController {
                     bytesRead = line.read(buffer, 0, buffer.length);
                     if (bytesRead < 0) break;
 
-                    rms = calculateRMS(buffer, bytesRead);
+                    if (bytesRead > 0) {
+                        hasData = true;
+                        rms = calculateRMS(buffer, bytesRead);
 
-                    if (rms > 1.0f) rms = 1.0f;
-                    if (rms < 0.0f) rms = 0.0f;
+                        if (rms > 1.0f) rms = 1.0f;
+                        if (rms < 0.0f) rms = 0.0f;
 
-                    model.setCurrentLoudness(rms);
-
-                    if (rms > 0.1f) {
-                        System.out.println("Loudness: " + String.format("%.3f", rms));
+                        model.setCurrentLoudness(rms);
                     }
                 }
             } catch (LineUnavailableException e) {
-                System.err.println("Mic not available: " + e.getMessage());
-                model.setCurrentLoudness(0.5f);
+                System.err.println("Microphone not available: " + e.getMessage());
+                runFallbackMode();
+            } catch (Exception e) {
+                System.err.println("Audio error: " + e.getMessage());
+                runFallbackMode();
             } finally {
                  if (line != null) {
                      line.stop();
                      line.close();
                  }
+                 System.out.println("Audio thread stopped");
+            }
+        }
+
+        private void runFallbackMode() {
+            System.out.println("Running in fallback mode - use keyboard arrows to control bird");
+            while (running) {
+                try {
+                    Thread.sleep(50);
+                    model.setCurrentLoudness(0.4f);
+                } catch (InterruptedException e) {
+                    break;
+                }
             }
         }
 
@@ -152,6 +190,6 @@ public class GameController {
             running = false;
         }
 
-
+        public boolean hasData() { return hasData; }
     }
 }

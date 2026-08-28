@@ -73,7 +73,18 @@ public class GameView {
 
         gc.setFill(Color.rgb(0, 0, 0, 0.2));
         gc.setFont(Font.font(10));
-        gc.fillText("v1.0 | Mic: " + String.format("%.2f", model.getCurrentLoudness()), 5, canvas.getHeight() - 5);
+        String micStatus = "Mic: " + String.format("%.2f", model.getCurrentLoudness());
+        gc.fillText(micStatus, 5, canvas.getHeight() - 5);
+
+        double dotX = 70;
+        double dotY = canvas.getHeight() - 8;
+        if (model.getCurrentLoudness() > 0.05f) {
+            gc.setFill(Color.rgb(0, 255, 0));
+            gc.fillOval(dotX, dotY - 3, 6, 6);
+        } else {
+            gc.setFill(Color.rgb(100, 100, 100));
+            gc.fillOval(dotX, dotY - 3, 6, 6);
+        }
     }
 
     private void updateClouds() {
@@ -291,7 +302,6 @@ public class GameView {
     }
 
     private void drawScoreUI(GraphicsContext gc, GameModel model) {
-
         gc.setFill(Color.rgb(0, 0, 0, 0.35));
         gc.fillRect(0, 0, canvas.getWidth(), 55);
 

@@ -14,7 +14,7 @@ public class GameModel {
     private int screenHeight = 600;
 
     private float currentLoudness = 0.0f;
-    private float sensitivity = 0.7f;
+    private float sensitivity = 0.6f;
 
     private int topPadding = 30;
     private int bottomPadding = 30;
@@ -22,11 +22,12 @@ public class GameModel {
     private List<Pipe> pipes;
     private Random random;
     private int pipeSpawnTimer = 0;
-    private int pipeSpawnInterval = 120;
+    private int pipeSpawnInterval = 130;
 
     private int pipeSpeed = 3;
-    private int pipeGapMin = 100;
-    private int pipeGapMax = 500;
+    private int pipeGapMin = 120;
+    private int pipeGapMax = 480;
+    private int pipeGapSize = 160;
 
     private int score = 0;
     private int highScore = 0;
@@ -42,6 +43,9 @@ public class GameModel {
     private int restartCooldown = 0;
     private boolean canRestart = false;
 
+    private float smoothLoudness = 0.0f;
+    private float loudnessSmooting = 0.3f;
+
     public GameModel() {
         birdX = 80;
         birdY = screenHeight / 2;
@@ -55,7 +59,9 @@ public class GameModel {
     public int getBirdSize() { return birdSize; }
 
     public void updateBirdPosition() {
-        float volumeClamped = Math.min(currentLoudness * sensitivity, 1.0f);
+        smoothLoudness = smoothLoudness * (1 - loudnessSmoothing) + currentLoudness * loudnessSmooting;
+
+        float volumeClamped = Math.min(smoothLoudness * sensitivity, 1.0f);
         int newY = (int)((1.0f - volumeClamped) * (screenHeight - topPadding - bottomPadding) + topPadding);
 
         if (newY < topPadding) newY = topPadding;
@@ -109,7 +115,7 @@ public class GameModel {
     }
 
     public void checkVoiceRestart() {
-        if (gameOver && canRestart && currentLoudness > 0.7f) {
+        if (gameOver && canRestart && currentLoudness > 0.75f) {
             System.out.println("Voice restart triggered! Loudness: " + currentLoudness);
             resetGame();
         }
@@ -125,7 +131,9 @@ public class GameModel {
 
     private void spawnPipe() {
         int gapY = random.nextInt(pipeGapMax - pipeGapMin) + pipeGapMin;
-        pipes.add(new Pipe(screenWidth, gapY));
+        Pipe newPipe = new Pipe(screenWidth, gapY);
+        newPipe.setGapSize(pipeGapSize;
+        pipes.add(newPipe);
     }
 
     public boolean checkPipeCollision() {
@@ -219,6 +227,7 @@ public class GameModel {
     public boolean isShowScorePopup() { return showScorePopup; }
     public int getScorePopupTimer() { return scorePopupTimer; }
     public boolean canRestart() { return canRestart; }
+    public int getRestartCoolDown() { return restartCooldown; }
 
     public void resetGame() {
         birdY = screenHeight / 2;
@@ -232,6 +241,7 @@ public class GameModel {
         scorePopupTimer = 0;
         restartCooldown = 0;
         canRestart = false;
+        smoothLoudness = 0.0f;
         System.out.println("=== GAME RESET ===");
     }
 
@@ -240,20 +250,21 @@ public class GameModel {
         this.currentLoudness = loudness;
     }
 
+    public float getSmoothLoudness() { return smoothLoudness; }
+    public float getSensitivity() { return sensitivity; }
     public void setSensitivity(float sens) {
         this.sensitivity = sens;
     }
-    public float getSensitivity() { return sensitivity; }
 
     public int getScreenWidth() { return screenWidth; }
     public int getScreenHeight() { return screenHeight; }
     public int getTopPadding() { return topPadding; }
     public int getBottomPadding() { return bottomPadding; }
-    public int getRestartCooldown() { return restartCooldown; }
-    public float getSensitivity() { return sensitivity; }
 
     public int getPipeSpeed() { return pipeSpeed; }
     public void setPipeSpeed(int speed) { this.pipeSpeed = speed; }
     public int getPipeSpawnInterval() { return pipeSpawnInterval; }
     public void setPipeSpawnInterval(int interval) { this.pipeSpawnInterval = interval; }
+    public int getPipeGapSize() { return pipeGapSize; }
+    public void setPipeGapSize(int size) { this.pipeGapSize = size; }
 }

@@ -19,6 +19,7 @@ public class Pipe {
 
     public int getGapY() { return gapY; }
     public int getGapSize() { return gapSize; }
+    public void setGapSize(int size) { this.gapSize = size; }
     public int getWidth() { return width; }
 
     public boolean isScored() { return scored; }
