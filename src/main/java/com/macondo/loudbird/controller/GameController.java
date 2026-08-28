@@ -7,7 +7,6 @@ import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 
 import javax.sound.sampled.*;
-import java.nio.ByteBuffer;
 
 public class GameController {
     private GameModel model;
@@ -18,6 +17,7 @@ public class GameController {
 
     private int frameCounter = 0;
     private boolean restartPressed = false;
+    private boolean micWorking = false;
 
     public GameController(GameModel model, GameView view, Scene scene) {
         this.model = model;
@@ -63,7 +63,7 @@ public class GameController {
         }
 
         System.out.println("Sensitivity: " + model.getSensitivity());
-        System.out.println("Press SPACE or YELL to restart after game over);
+        System.out.println("Press SPACE or YELL to restart after game over");
         System.out.println("Press 'S' to change sensitivity");
 
         gameLoop = new AnimationTimer() {

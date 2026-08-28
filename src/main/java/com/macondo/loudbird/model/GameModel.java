@@ -44,7 +44,7 @@ public class GameModel {
     private boolean canRestart = false;
 
     private float smoothLoudness = 0.0f;
-    private float loudnessSmooting = 0.3f;
+    private float loudnessSmoothing = 0.3f;
 
     public GameModel() {
         birdX = 80;
@@ -59,7 +59,7 @@ public class GameModel {
     public int getBirdSize() { return birdSize; }
 
     public void updateBirdPosition() {
-        smoothLoudness = smoothLoudness * (1 - loudnessSmoothing) + currentLoudness * loudnessSmooting;
+        smoothLoudness = smoothLoudness * (1 - loudnessSmoothing) + currentLoudness * loudnessSmoothing;
 
         float volumeClamped = Math.min(smoothLoudness * sensitivity, 1.0f);
         int newY = (int)((1.0f - volumeClamped) * (screenHeight - topPadding - bottomPadding) + topPadding);
@@ -132,7 +132,7 @@ public class GameModel {
     private void spawnPipe() {
         int gapY = random.nextInt(pipeGapMax - pipeGapMin) + pipeGapMin;
         Pipe newPipe = new Pipe(screenWidth, gapY);
-        newPipe.setGapSize(pipeGapSize;
+        newPipe.setGapSize(pipeGapSize);
         pipes.add(newPipe);
     }
 
@@ -227,7 +227,7 @@ public class GameModel {
     public boolean isShowScorePopup() { return showScorePopup; }
     public int getScorePopupTimer() { return scorePopupTimer; }
     public boolean canRestart() { return canRestart; }
-    public int getRestartCoolDown() { return restartCooldown; }
+    public int getRestartCooldown() { return restartCooldown; }
 
     public void resetGame() {
         birdY = screenHeight / 2;

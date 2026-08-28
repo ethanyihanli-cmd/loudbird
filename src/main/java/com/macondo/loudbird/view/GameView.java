@@ -4,11 +4,13 @@ import com.macondo.loudbird.model.GameModel;
 import com.macondo.loudbird.model.Pipe;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +25,40 @@ public class GameView {
     private Random random;
     private int cloudTimer = 0;
 
+    private Image peterGif;
+    private boolean gifLoaded = false;
+
+    private String[] lyrics = {
+            "Surfin' bird!",
+            "A-well-a, everybody's heard about the bird",
+            "Bird, bird, bird, b-bird's the word",
+            "A-well-a, bird, bird, bird, the bird is the word",
+            "A-well-a, bird, bird, bird, well, the bird is the word",
+            "A-well-a, bird, bird, b-bird's the word",
+            "A-well-a, bird, brid, brid, b-bird's the word",
+            "A-well-a, bird, bird, bird, well, the bird is the word",
+            "A- well-a, bird, bird, b-bird's the word",
+            "A-well-a, don't you know about the bird?",
+            "Well, everybody knows that the bird is the word!",
+            "A-well-a, bird, bird, b-bird's the word",
+            "A-well-a, everybody's heard about the bird",
+            "Bird, bird, bird, b-bird's the word",
+            "A-well-a, bird, bird, bird, b-bird's hte word",
+            "A-well-a, bird, bird, bird, b-bird's the word",
+            "A-well-a, bird, bird, b-bird's the word",
+            "A-well-a. bird, bird, bird, b-bird's hte word",
+            "A-well-a, bird, bird, bird, b-bird's the word",
+            "A-well-a, bird, bird, bird, b-bird's the word",
+            "A-well-a, bird, bird, bird, b-bird's the word",
+            "A-well-a, don't you konw baout hte bird?",
+            "Well, everybody's talking about the bird!",
+            "A-well-a, bird, bird, b-bird's teh word",
+            "A-well-a, bird (Surfin' bird)"
+    };
+    private int currentLyricIndex = 0;
+    private int lyricTimer = 0;
+    private int lyricsInterval = 120;
+
     public GameView(Canvas canvas) {
         this.canvas = canvas;
         this.random = new Random();
@@ -34,6 +70,23 @@ public class GameView {
                     30 + random.nextInt(50),
                     15 + random.nextInt(20)
             ));
+        }
+
+        try {
+            java.net.URL gifUrl = getClass().getResource("/peter-griffin.gif");
+            if (gifUrl != null) {
+                peterGif = new Image(gifUrl.toExternalForm());
+                gifLoaded = true;
+                System.out.println("√ Peter Griffin GIF loaded from file!");
+            } else {
+                peterGif = new Image("file:peter-griffin.gif");
+                gifLoaded = true;
+                System.out.println("√ Peter Griffin GIF loaded from file!");
+            }
+        } catch (Exception e) {
+            System.out.println("❌ Could not load Peter Griffin GIF: " + e.getMessage());
+            System.out.println("  Place peter-griffin.gif in the project root or resources folder");
+            gifLoaded = false;
         }
     }
 
@@ -67,6 +120,10 @@ public class GameView {
 
         drawScoreUI(gc, model);
 
+        drawSingalongLyrics(gc);
+
+        drawPeterGriffin(gc);
+
         if (model.isGameOver()) {
             drawGameOver(gc, model);
         }
@@ -85,6 +142,82 @@ public class GameView {
             gc.setFill(Color.rgb(100, 100, 100));
             gc.fillOval(dotX, dotY - 3, 6, 6);
         }
+    }
+
+    private void drawSingalongLyrics(GraphicsContext gc) {
+        lyricTimer++;
+        if (lyricTimer >= lyricsInterval) {
+            lyricTimer = 0;
+            currentLyricIndex = (currentLyricIndex + 1) % lyrics.length;
+        }
+
+        gc.setFill(Color.rgb(0, 0, 0, 0.4));
+        gc.fillRoundRect(canvas.getWidth()/2 - 200, 55, 400, 45, 10, 10);
+
+        gc.setStroke(Color.rgb(255, 255, 255, 0.15));
+        gc.setLineWidth(1);
+        gc.strokeRoundRect(canvas.getWidth()/2 - 200, 55, 400, 45, 10, 10);
+
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.setFill(Color.rgb(0, 0, 0, 0.5));
+        gc.setFont(Font.font("Arial", 20));
+        gc.fillText(lyrics[currentLyricIndex], canvas.getWidth()/2 + 1, 88);
+
+        gc.setFill(Color.rgb(255, 255, 255, 0.3));
+        gc.setFont(Font.font("Arial", 9));
+        gc.fillText("🎵 Sing along 🎵", canvas.getWidth()/2, 70);
+
+        int totalLyrics = lyrics.length;
+        int visibleDots = 15;
+        int startIndex = Math.min(0, currentLyricIndex - visibleDots/2);
+        int endIndex = Math.min(totalLyrics, startIndex + visibleDots);
+
+        double dotSpacing = (canvas.getWidth() - 40) / visibleDots;
+        double dotY = 105;
+
+        for (int i = startIndex; i < endIndex; i++) {
+            double dotX = 20 + (i - startIndex) * dotSpacing + dotSpacing/2;
+            if (i == currentLyricIndex) {
+                gc.setFill(Color.rgb(255, 255, 100, 0.8));
+                gc.fillOval(dotX - 3, dotY - 3, 6, 6);
+            } else {
+                gc.setFill(Color.rgb(255, 255, 255, 0.2));
+                gc.fillOval(dotX - 2, dotY - 2, 4, 4);
+            }
+        }
+    }
+
+    private void drawPeterGriffin(GraphicsContext gc) {
+        if (!gifLoaded || peterGif == null) {
+            gc.setFill(Color.rgb(0, 0, 0, 0.4));
+            gc.fillRoundRect(10, canvas.getHeight() - 110, 100, 100, 10, 10);
+            gc.setFill(Color.rgb(255, 255, 255, 0.5));
+            gc.setFont(Font.font("Arial", 10));
+            gc.setTextAlign(TextAlignment.CENTER);
+            gc.fillText("Peter Griffin", 60, canvas.getHeight() - 80);
+            gc.fillText("Coming soon", 60, canvas.getHeight() - 60);
+            return;
+        }
+
+        double gifSize = 120;
+        double gifX = 15;
+        double gifY = canvas.getHeight() - gifSize - 55;
+
+        gc.setFill(Color.rgb(0, 0, 0, 0.2));
+        gc.fillOval(gifX + 10, gifY + gifSize - 5, gifSize - 20, 15);
+
+        gc.drawImage(peterGif, gifX, gifY, gifSize, gifSize);
+
+        gc.setStroke(Color.rgb(255, 255, 255, 0.15));
+        gc.setLineWidth(1);
+        gc.strokeRect(gifX, gifY, gifSize, gifSize);
+
+        gc.setFill(Color.rgb(0, 0, 0, 0.3));
+        gc.fillRoundRect(gifX, gifY + gifSize - 20, gifSize, 20, 5, 5);
+        gc.setFill(Color.rgb(255, 255, 255, 0.6));
+        gc.setFont(Font.font("Arial", 9));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText("🎵 Peter Griffin 🎵", gifX + gifSize/2, gifY + gifSize - 6);
     }
 
     private void updateClouds() {
